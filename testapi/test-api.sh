@@ -102,8 +102,8 @@ run_test "8. Invalid Status Handling" "CODE=\$(curl -s -o /dev/null -w '%{http_c
 run_test "9. Non-Existent Order (404/401)" "CODE=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:${SERVICE_PORT}/api/orders/9999) && [ \"\$CODE\" = \"404\" ] || [ \"\$CODE\" = \"401\" ]"
 
 # Test DB : On cache les credentials dans le HTML
-DB_CMD="mariadb --skip-ssl -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -sN -e 'SELECT COUNT(*) FROM orders'"
-run_test "10. Database Consistency" "$DB_CMD" "mariadb -h $DB_HOST_TARGET -u ${DB_USER} -p**** ${DB_NAME} -e 'SELECT COUNT(*) FROM orders'"
+DB_CMD="COUNT=\$(mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -sN -e 'SELECT COUNT(*) FROM orders') && [ \"\$COUNT\" -gt 0 ]"
+run_test "10. Database Consistency" "$DB_CMD" "mysql -h $DB_HOST -u ${DB_USER} -p**** ${DB_NAME} -e 'SELECT COUNT(*) FROM orders'"
 
 # --- FINALISATION ---
 echo "----------------------------------------------------------------------" | tee -a "$LOG_FILE"
