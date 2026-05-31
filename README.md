@@ -55,24 +55,28 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ## 🔄 Pipeline CI/CD
 
 ```
-                        GitLab Push / PR
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Stage 1 — Test                                             │
-│  └── test-api.sh : 10-13 tests endpoints API                │
-├─────────────────────────────────────────────────────────────┤
-│  Stage 2 — Build                                            │
-│  └── Docker multi-stage : Node 18 → Node 18 Alpine (~80MB) │
-├─────────────────────────────────────────────────────────────┤
-│  Stage 3 — Security Scan                                    │
-│  ├── security-scan.sh    : Trivy CVE scan                   │
-│  └── git-security-scan.sh: Détection secrets dans le code   │
-├─────────────────────────────────────────────────────────────┤
-│  Stage 4 — Push                                             │
-│  ├── Harbor   : harbor.myvbox.com/ecommerce/order-service    │
-│  └── DockerHub: yaramahi/order-service:v3.2                 │
-└─────────────────────────────────────────────────────────────┘
+                    GitHub Push / Pull Request
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│  Job 1 : Test API (parallèle)                          │
+│  └── npm install + test-api.sh : 10-13 tests endpoints  │
+│  └── Dépendance : MongoDB 7                             │
+├─────────────────────────────────────────────────────────┤
+│  Job 2 : Dependency Scanning (parallèle)                │
+│  └── Trivy FS scan : scanne les vulnérabilités          │
+├─────────────────────────────────────────────────────────┤
+│  Job 3 : Build Docker Image (après tests réussis)      │
+│  └── Docker multi-stage : Node 20 Alpine                │
+│  └── Sauvegarde l'image en artefact                     │
+├─────────────────────────────────────────────────────────┤
+│  Job 4 : Scan Container (main uniquement)              │
+│  └── Trivy container scan : détecte vulnérabilités      │
+├─────────────────────────────────────────────────────────┤
+│  Job 5 : Push to GHCR (main uniquement)                │
+│  └── GitHub Container Registry : ghcr.io/...           │
+│  └── Tags : commit-sha + latest                        │
+└─────────────────────────────────────────────────────────┘
 ```
 
 <details>
@@ -82,10 +86,8 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 
 </details>
 
-**Fichiers CI/CD :**
-- `.gitlab-ci.yml` — Pipeline GitLab
-- `Jenkinsfile-ci` — Pipeline Jenkins (stages: Test → Build → Scan → Push)
-- `Jenkins Harbor Guide` — Guide setup Jenkins + Harbor
+**Fichier CI/CD :**
+- `.github/workflows/ci.yml` — Pipeline GitHub Actions complète avec tests, scans de sécurité et déploiement
 
 ---
 

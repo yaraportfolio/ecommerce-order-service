@@ -66,10 +66,25 @@ run_test() {
 }
 
 # --- DÉMARRAGE DU SERVICE ---
+echo "Starting service on port ${SERVICE_PORT}..."
+echo "MongoDB URI: $MONGO_URI"
 node src/server.js > service-output.log 2>&1 &
 SERVICE_PID=$!
-if ! kill -0 $SERVICE_PID 2>/dev/null; then exit 1; fi
-timeout 60 sh -c "until curl -s http://localhost:${SERVICE_PORT}/api/orders/health > /dev/null; do sleep 1; done"
+sleep 2
+echo "Service PID: $SERVICE_PID"
+cat service-output.log
+echo "---"
+if ! kill -0 $SERVICE_PID 2>/dev/null; then
+  echo "❌ Service failed to start"
+  cat service-output.log
+  exit 1
+fi
+timeout 60 sh -c "until curl -s http://localhost:${SERVICE_PORT}/api/orders/health > /dev/null; do sleep 1; done" || {
+  echo "❌ Health check timeout. Service logs:"
+  cat service-output.log
+  kill $SERVICE_PID 2>/dev/null || true
+  exit 124
+}
 
 # --- 1. DISPONIBILITÉ ET MÉTRIQUES ---
 run_test "1. Health Check (Liveness)" "curl -s http://localhost:${SERVICE_PORT}/api/orders/health | jq -e '.status == \"ok\"'"
