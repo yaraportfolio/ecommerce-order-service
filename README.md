@@ -16,20 +16,21 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ## 🗺️ Positionnement dans l'Architecture
 
 ```
-          Frontend (192.168.56.114)
-                      │
-                      ▼
-┌──────────────────────────────────────────────┐
-│  Kubernetes Cluster (192.168.56.111)         │
-│  Ingress :30080                              │
-│  ├── 🔐 auth-service    :3001                │
-│  ├── 📦 product-service :3002                │
-│  ├── 🛒 order-service   :3003  ← Ce service  │
-│  └── ⭐ review-service  :3004                │
-└──────────────────────────────────────────────┘
-                      │
-                      ▼
-  MariaDB (192.168.56.115:3306) — ecommerce_db
+                 Frontend (192.168.56.114)
+                          │
+                          ▼
+      ┌──────────────────────────────────────┐
+      │  Kubernetes Cluster (192.168.56.111) │
+      │  Ingress :30080                      │
+      │  ├── 🔐 auth-service    :3001        │
+      │  ├── 📦 product-service :3002        │
+      │  ├── 🛒 order-service   :3003 ← HERE │
+      │  └── ⭐ review-service  :3004        │
+      └──────────────────────────────────────┘
+                          │
+                          ▼
+          MariaDB (192.168.56.115:3306)
+               ecommerce_db
 ```
 
 **Rôle de ce service :** Gestion complète du cycle de vie des commandes. Tous les endpoints nécessitent un JWT valide — les utilisateurs ne voient que leurs propres commandes, les admins voient tout.
@@ -55,28 +56,30 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ## 🔄 Pipeline CI/CD
 
 ```
-                    GitHub Push / Pull Request
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│  Job 1 : Test API (parallèle)                          │
-│  └── npm install + test-api.sh : 10-13 tests endpoints  │
-│  └── Dépendance : MariaDB 10.11                         │
-├─────────────────────────────────────────────────────────┤
-│  Job 2 : Dependency Scanning (parallèle)                │
-│  └── Trivy FS scan : scanne les vulnérabilités          │
-├─────────────────────────────────────────────────────────┤
-│  Job 3 : Build Docker Image (après tests réussis)      │
-│  └── Docker multi-stage : Node 20 Alpine                │
-│  └── Sauvegarde l'image en artefact                     │
-├─────────────────────────────────────────────────────────┤
-│  Job 4 : Scan Container (main uniquement)              │
-│  └── Trivy container scan : détecte vulnérabilités      │
-├─────────────────────────────────────────────────────────┤
-│  Job 5 : Push to GHCR (main uniquement)                │
-│  └── GitHub Container Registry : ghcr.io/...           │
-│  └── Tags : commit-sha + latest                        │
-└─────────────────────────────────────────────────────────┘
+              GitHub Push / Pull Request
+                        │
+                        ▼
+    ┌───────────────────────────────────────┐
+    │  Job 1 : Test API (parallèle)         │
+    │  └── npm install + test-api.sh        │
+    │  └── 10-13 tests endpoints            │
+    │  └── MariaDB 10.11 (dépendance)       │
+    ├───────────────────────────────────────┤
+    │  Job 2 : Dependency Scanning          │
+    │  └── Trivy FS scan                    │
+    │  └── Vulnérabilités des packages      │
+    ├───────────────────────────────────────┤
+    │  Job 3 : Build Docker Image           │
+    │  └── Docker multi-stage : Node 20     │
+    │  └── Image en artefact                │
+    ├───────────────────────────────────────┤
+    │  Job 4 : Scan Container (main only)   │
+    │  └── Trivy container scan             │
+    ├───────────────────────────────────────┤
+    │  Job 5 : Push to GHCR (main only)     │
+    │  └── ghcr.io/...                      │
+    │  └── Tags : sha + latest              │
+    └───────────────────────────────────────┘
 ```
 
 <details>
@@ -94,7 +97,7 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ## ⚡ Quick Start
 
 ```bash
-git clone https://gitlab.com/yara_portfolio/devops/ecommerce/microservice/order-service.git
+git clone https://github.com/yaraportfolio/ecommerce-order-service.git
 cd order-service
 cp .env.example .env && nano .env
 
@@ -137,7 +140,6 @@ order-service/
 │   └── git-security-scan.sh      # Détection secrets
 ├── Dockerfile
 ├── Jenkinsfile-ci
-├── .gitlab-ci.yml
 └── .env.example
 ```
 
@@ -201,11 +203,11 @@ cd testapi && bash test-api.sh
 
 | Composant | Repository |
 |-----------|------------|
-| 🔐 Auth Service | [auth-service](https://gitlab.com/yara_portfolio/devops/ecommerce/microservice/auth-service) |
-| 📦 Product Service | [product-service](https://gitlab.com/yara_portfolio/devops/ecommerce/microservice/product-service) |
-| ⭐ Review Service | [review-service](https://gitlab.com/yara_portfolio/devops/ecommerce/microservice/review-service) |
-| ⎈ Helm Chart | [k8s-helm-chart](https://gitlab.com/yara_portfolio/devops/ecommerce/devops-tools/k8s-helm-chart) |
-| 🗄️ Base de données | [ecommerce-database](https://gitlab.com/yara_portfolio/devops/ecommerce/ecommerce-database) |
+| 🔐 Auth Service | [auth-service](https://github.com/yaraportfolio/ecommerce-auth-service) |
+| 📦 Product Service | [product-service](https://github.com/yaraportfolio/ecommerce-product-service) |
+| ⭐ Review Service | [review-service](https://github.com/yaraportfolio/ecommerce-review-service) |
+| ⎈ Helm Chart | [k8s-helm-chart](https://github.com/yaraportfolio/k8s-helm-chart) |
+| 🗄️ Base de données | [ecommerce-database](https://github.com/yaraportfolio/ecommerce-database) |
 
 ---
 
