@@ -17,7 +17,6 @@ on:
 
 env:
   DOCKER_IMAGE: ghcr.io/${{ github.repository_owner }}/order-service
-  DOCKER_TAG: ${{ github.sha | slice(0,7) }}
   SERVICE_PORT: 3003
 
 jobs:
@@ -39,6 +38,7 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: devops_user
           MONGO_INITDB_ROOT_PASSWORD: devops_password
           MONGO_INITDB_DATABASE: orders_db
+        # Vérifie que MongoDB est prêt toutes les 10 secondes (timeout 5s, max 3 tentatives)
         options: >-
           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
           --health-interval 10s
@@ -67,9 +67,11 @@ jobs:
             sleep 2
           done'
 
-      - name: Setup test database
+      - name: Run API tests
         env:
           MONGO_URI: mongodb://devops_user:devops_password@localhost:27017/orders_db?authSource=admin
+          JWT_SECRET: test_secret_key
+          SERVICE_PORT: 3003
         run: |
           chmod +x ./testapi/test-api.sh
           ./testapi/test-api.sh
@@ -115,8 +117,7 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'template'
-          template: '@/contrib/html.tpl'
+          format: 'table'
           output: 'dependency-report.html'
 
       - name: Upload dependency report
@@ -144,6 +145,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # Génère le tag Docker (7 premiers caractères du commit SHA)
+      - name: Generate Docker tag
+        run: echo "DOCKER_TAG=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -211,8 +216,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
-          format: 'template'
-          template: '@/contrib/html.tpl'
+          format: 'table'
           output: 'container-report.html'
 
       - name: Upload container report
