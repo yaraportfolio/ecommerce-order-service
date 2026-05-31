@@ -16,8 +16,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: yaramahi/order-service
-  DOCKER_TAG: v1.5
+  DOCKER_IMAGE: ghcr.io/${{ github.repository_owner }}/order-service
+  DOCKER_TAG: ${{ github.sha | slice(0,7) }}
   SERVICE_PORT: 3003
 
 jobs:
@@ -227,7 +227,7 @@ jobs:
   # JOB 5 : PUSH À DOCKER HUB
   # -----------------------------------------------------------------
   docker_push:
-    name: Push to Docker Hub
+    name: Push to GitHub Container Registry
     runs-on: ubuntu-latest
     needs: image_scanning
 
@@ -247,11 +247,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

@@ -1,15 +1,15 @@
 # 🛒 Order Service — Microservice Commandes
 
-![Node.js](https://img.shields.io/badge/Node.js-18-339933?logo=nodedotjs&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-metrics-E6522C?logo=prometheus&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-13aa52?logo=mongodb&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=github&logoColor=white)
 ![Trivy](https://img.shields.io/badge/Trivy-security_scan-1904DA?logo=aqua&logoColor=white)
-![Version](https://img.shields.io/badge/version-3.2-blue)
+![GHCR](https://img.shields.io/badge/GHCR-registry-24292e?logo=github&logoColor=white)
 
 Microservice de gestion des commandes avec authentification JWT — partie de l'architecture microservices e-commerce déployée sur **Kubernetes** (Helm) ou **Docker Swarm** (Kong Gateway).
 
-> 💡 **Objectif Portfolio** : Ce service illustre la gestion d'une ressource métier sensible (commandes financières) dans un contexte microservices — authentification requise sur tous les endpoints, séparation claire des rôles user/admin.
+> 💡 **Objectif Portfolio** : Ce service illustre la gestion d'une ressource métier sensible (commandes financières) avec GitHub Actions CI/CD complet — tests → build Docker → scan Trivy → push GHCR.
 
 ---
 
