@@ -1,0 +1,82 @@
+# JENKINS SETUP - GUIDE SIMPLE
+
+## 1. PLUGINS (4 essentiels)
+
+Jenkins → Manage Jenkins → Manage Plugins → Install:
+- Docker Pipeline
+- Pipeline
+- Git plugin
+- Credentials Binding
+
+## 2. CREDENTIALS
+
+Jenkins → Manage Jenkins → Manage Credentials → Add:
+- Type: Username with password
+- Username: admin
+- Password: `<harbor_password>`
+- ID: `harbor-credentials`
+
+## 3. CRÉER LE JOB
+
+Jenkins → New Item
+- Name: `order-service-ci`
+- Type: Multibranch Pipeline
+- Repository URL: `https://gitlab.com/yourrepo/order-service.git`
+- Script Path: `Jenkinsfile-ci`
+- Save
+
+## 4. DOCKER ACCESS
+
+```bash
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+```
+
+## 5. STRUCTURE REPO
+
+```
+order-service/
+├── Jenkinsfile-ci
+├── Dockerfile
+├── src/
+└── testapi/
+    ├── data-test-api.sql
+    └── test-api.sh
+```
+
+## 6. VARIABLES JENKINSFILE
+
+```groovy
+environment {
+    HARBOR_REGISTRY = 'harbor.myvbox.com'
+    HARBOR_PROJECT = 'ecommerce'
+    DOCKER_IMAGE = 'order-service'
+    DOCKER_TAG = 'v3.3'
+}
+```
+
+## 7. PIPELINE STAGES
+
+1. Initialisation → Echo infos
+2. Test API → Tester endpoints (develop + main)
+3. Build → docker build (develop + main)
+4. Scan → Trivy scan (main seulement)
+5. Push → Push to Harbor (main seulement)
+
+## 8. WEBHOOK GITLAB (optionnel)
+
+GitLab → Settings → Webhooks
+- URL: `http://jenkins.myvbox.com/project/order-service-ci`
+- Trigger: Push events
+
+## 9. LANCER UN BUILD
+
+Jenkins Dashboard → order-service-ci → Build Now
+
+## 10. VOIR LES LOGS
+
+Jenkins → order-service-ci → Build #X → Console Output
+
+---
+
+**C'est tout! 🚀**

@@ -1,0 +1,252 @@
+// =================================================================
+// PIPELINE CI/CD : ORDER SERVICE
+// =================================================================
+// Ce workflow assure le cycle de vie complet de l'application :
+// 1. Validation fonctionnelle (Tests API)
+// 2. Audit de sécurité applicatif (SCA)
+// 3. Conteneurisation (Docker Build)
+// 4. Audit de sécurité de l'image (Container Scanning)
+// 5. Distribution (Docker Push)
+// =================================================================
+
+pipeline {
+    agent any
+
+    // Paramètres pour un lancement manuel du pipeline
+    parameters {
+        choice(name: 'BRANCH_TO_BUILD', choices: ['develop', 'main'], description: 'Branche à utiliser si lancement manuel')
+        string(name: 'DOCKER_IMAGE',    defaultValue: 'order-service', description: 'Nom de l’image Docker')
+        string(name: 'DOCKER_TAG',      defaultValue: 'v3.3',          description: 'Tag de version')
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'harbor.myvbox.com', description: 'Adresse Harbor')
+        string(name: 'DOCKER_PROJECT',  defaultValue: 'ecommerce',    description: 'Projet Harbor')
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    environment {
+        // Détection intelligente de la branche
+        RAW_BRANCH = "${env.GIT_BRANCH ?: params.BRANCH_TO_BUILD}"
+        TARGET_BRANCH = "${RAW_BRANCH.replaceAll('origin/', '')}"
+        
+        // Construction du chemin d'image
+        IMAGE_FULL_PATH = "${params.DOCKER_REGISTRY}/${params.DOCKER_PROJECT}/${params.DOCKER_IMAGE}:${params.DOCKER_TAG}"
+        
+        // Variables pour les tests
+        SERVICE_PORT = '3003'
+        SCAN_PRIORITY = '20' // Priorité des locks (plus haut = plus prioritaire)
+        JWT_SECRET = 'test_secret_key'
+        DB_NAME = 'ecommerce_db'
+        DB_USER = 'devops_password'
+        DB_PASSWORD = 'devops_password'
+    }
+
+    stages {
+        /**
+         * STAGE: Initialisation
+         * Affiche les infos de base du pipeline
+         */
+        stage('Initialisation') {
+            steps {
+                echo "🚀 Démarrage du pipeline sur la branche : ${env.TARGET_BRANCH}"
+                echo "📦 Image cible : ${env.IMAGE_FULL_PATH}"
+            }
+        }
+
+        /**
+         * STAGE: Tests API
+         * Lance un MariaDB temporaire et exécute les tests d'intégration.
+         * - Création d’un réseau Docker isolé
+         * - Démarrage d’un conteneur MariaDB
+         * - Injection des données de test
+         * - Exécution des tests API dans un conteneur Node
+         * - Nettoyage des ressources Docker
+         */
+        stage('Test API') {
+            when { expression { return env.TARGET_BRANCH == 'develop' || env.TARGET_BRANCH == 'main' } }
+            steps {
+                script {
+                    def networkName = "net-${params.DOCKER_IMAGE}-${env.BUILD_NUMBER}"
+                    def dbHost = "db-${params.DOCKER_IMAGE}-${env.BUILD_NUMBER}"
+                    
+                    sh "docker network create ${networkName}"
+                    try {
+                        // Démarrage du conteneur MariaDB
+                        sh """
+                            docker run -d --name ${dbHost} --network ${networkName} \
+                            -e MARIADB_ROOT_PASSWORD=${DB_PASSWORD} \
+                            -e MARIADB_DATABASE=${DB_NAME} \
+                            -e MARIADB_USER=${DB_USER}  \
+                            -e MARIADB_PASSWORD=${DB_PASSWORD} \
+                            mariadb:10.11
+                        """
+
+                        // Lancement des tests API dans un conteneur Node
+                        docker.image('node:18-alpine').inside("--network ${networkName} -u root -e HOME=.") {
+                            sh """
+                                apk add --no-cache mariadb-client curl jq
+                                npm install
+                                timeout 60 sh -c 'until mariadb --skip-ssl -h ${dbHost} -u ${DB_USER} -p${DB_PASSWORD} -e "SELECT 1"; do sleep 2; done'
+                                mariadb --skip-ssl -h ${dbHost} -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < ./testapi/data-test-api.sql
+                                chmod +x ./testapi/test-api.sh
+                                SERVICE_PORT=${SERVICE_PORT} DB_NAME=${env.DB_NAME} DB_PASSWORD=${env.DB_PASSWORD} DB_HOST=${dbHost} \
+                                DB_USER=${DB_USER} JWT_SECRET=${env.JWT_SECRET} SERVICE_PORT=${env.SERVICE_PORT} \
+                                ./testapi/test-api.sh
+                                chown 114:123 test-api-report.html
+                            """
+                        }
+                    } finally {
+                        // Nettoyage des ressources Docker
+                        sh "docker rm -f ${dbHost} || true"
+                        sh "docker network rm ${networkName} || true"
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'test-api-report.html', allowEmptyArchive: true
+                    sh "mkdir -p reports && mv test-api-report.html reports/"
+                    publishHTML([
+                        allowMissing          : false,
+                        alwaysLinkToLastBuild : true,
+                        keepAll               : true,
+                        reportDir             : 'reports',
+                        reportFiles           : 'test-api-report.html',
+                        reportName            : 'Test API',
+                        reportTitles          : 'Rapport - Test API'
+                    ])
+                }
+            }
+        }
+
+        /**
+         * STAGE: Dependency Scanning (SCA)
+         * Analyse le système de fichiers pour détecter les vulnérabilités dans package.json.
+         * - Lock sur le cache Trivy pour éviter les accès concurrents
+         * - Exécution du scan en mode filesystem (fs)
+         */
+        stage('Dependency Scanning') {
+            when { expression { return env.TARGET_BRANCH == 'develop' || env.TARGET_BRANCH == 'main' } }
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'
+                    args '-u root --entrypoint="" -v /var/lib/jenkins/trivy-cache:/root/.cache/trivy'
+                }
+            }
+            steps {
+                // Lock sur le cache Trivy pour éviter les accès concurrents
+                lock(resource: 'trivy-cache-lock', priority: env.SCAN_PRIORITY.toInteger()) {
+                    script {
+                        sh "chmod +x ./testapi/security-scan.sh"
+                        sh "SERVICE=${params.DOCKER_IMAGE} ./testapi/security-scan.sh fs . dependency-report.html"
+                        sh "chmod 666 dependency-report.html"
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'dependency-report.html', allowEmptyArchive: true
+                    sh "mkdir -p reports && mv dependency-report.html reports/"
+                    publishHTML([
+                        allowMissing          : false,
+                        alwaysLinkToLastBuild : true,
+                        keepAll               : true,
+                        reportDir             : 'reports',
+                        reportFiles           : 'dependency-report.html',
+                        reportName            : 'Dependencies Security',
+                        reportTitles          : 'Rapport de Sécurité Trivy - Dependances'
+                    ])
+                }
+            }
+        }
+
+        /**
+         * STAGE: Build Docker Image
+         * Construit l’image Docker finale
+         * - Lock sur le Docker Engine pour éviter les conflits de build
+         */
+        stage('Build Docker Image') {
+            when { expression { return env.TARGET_BRANCH == 'main' } }
+            steps {
+                lock(resource: 'docker-engine-resource', priority: env.SCAN_PRIORITY.toInteger()) {
+                    script {
+                        echo "🔨 Building image: ${env.IMAGE_FULL_PATH}"
+                        docker.build("${env.IMAGE_FULL_PATH}")
+                    }
+                }
+            }
+        }
+
+        /**
+         * STAGE: Container Scanning
+         * Analyse l'image Docker finale (OS + librairies).
+         * - Lock combiné : Docker Engine + Cache Trivy
+         * - Exécution du scan en mode image
+         */
+        stage('Container Scanning') {
+            when { expression { return env.TARGET_BRANCH == 'main' } }
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'
+                    args '-u root --entrypoint="" ' +
+                        '-v /var/run/docker.sock:/var/run/docker.sock ' +
+                        '-v /var/lib/jenkins/trivy-cache:/root/.cache/trivy'
+                }
+            }
+            steps {
+                // Lock combiné : Docker Engine + Cache Trivy
+                lock(resource: 'docker-engine-resource', priority: env.SCAN_PRIORITY.toInteger()) {
+                    lock(resource: 'trivy-cache-lock', priority: env.SCAN_PRIORITY.toInteger()) {
+                        script {
+                            sh "chmod +x ./testapi/security-scan.sh"
+                            sh "SERVICE=${params.DOCKER_IMAGE} ./testapi/security-scan.sh image ${env.IMAGE_FULL_PATH} container-report.html"
+                            sh "chmod 666 container-report.html"
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'container-report.html', allowEmptyArchive: true
+                    sh "mkdir -p reports && mv container-report.html reports/"
+                    publishHTML([
+                        allowMissing          : false,
+                        alwaysLinkToLastBuild : true,
+                        keepAll               : true,
+                        reportDir             : 'reports',
+                        reportFiles           : 'container-report.html',
+                        reportName            : 'Docker Image Security',
+                        reportTitles          : 'Rapport de Sécurité Trivy - Image Docker'
+                    ])
+                }
+            }
+        }
+
+        /**
+         * STAGE: Push Docker Image
+         * Publication vers Harbor après validation manuelle.
+         */
+        stage('Push Docker Image') {
+            when { expression { return env.TARGET_BRANCH == 'main' } }
+            steps {
+                input message: "🚀 Publier l'image ${params.DOCKER_IMAGE}:${params.DOCKER_TAG} sur Harbor ?"
+                script {
+                    docker.withRegistry("https://${params.DOCKER_REGISTRY}", 'harbor-creds') {
+                        def img = docker.image("${env.IMAGE_FULL_PATH}")
+                        img.push()
+                        img.push("latest")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "✅ Pipeline terminé avec succès sur ${env.TARGET_BRANCH}." }
+        failure { echo "❌ Échec du pipeline. Vérifiez les rapports d'erreurs archivés." }
+    }
+}
