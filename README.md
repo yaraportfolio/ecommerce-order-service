@@ -2,7 +2,7 @@
 
 ![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-7-13aa52?logo=mongodb&logoColor=white)
+![MariaDB](https://img.shields.io/badge/MariaDB-10.11-003545?logo=mariadb&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=github&logoColor=white)
 ![Trivy](https://img.shields.io/badge/Trivy-security_scan-1904DA?logo=aqua&logoColor=white)
 ![GHCR](https://img.shields.io/badge/GHCR-registry-24292e?logo=github&logoColor=white)
@@ -61,7 +61,7 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ┌─────────────────────────────────────────────────────────┐
 │  Job 1 : Test API (parallèle)                          │
 │  └── npm install + test-api.sh : 10-13 tests endpoints  │
-│  └── Dépendance : MongoDB 7                             │
+│  └── Dépendance : MariaDB 10.11                         │
 ├─────────────────────────────────────────────────────────┤
 │  Job 2 : Dependency Scanning (parallèle)                │
 │  └── Trivy FS scan : scanne les vulnérabilités          │
@@ -117,8 +117,6 @@ npm install && npm start
 | `DB_PASSWORD` | Mot de passe BD | — | ✅ |
 | `JWT_SECRET` | Clé JWT (même que auth-service) | — | ✅ |
 
-> ⚠️ `JWT_SECRET` doit être **identique** à celui utilisé par auth-service pour valider les tokens.
-
 ---
 
 ## 📁 Structure du Projet
@@ -126,7 +124,7 @@ npm install && npm start
 ```
 order-service/
 ├── src/
-│   ├── config/database.js        # Pool de connexions MariaDB
+│   ├── config/database.js        # Pool de connexions MariaDB (mysql2)
 │   ├── middleware/
 │   │   ├── authMiddleware.js     # Vérification JWT + rôle admin
 │   │   └── metrics.js            # Collecte métriques Prometheus

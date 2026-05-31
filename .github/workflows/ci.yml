@@ -32,20 +32,21 @@ jobs:
       checks: write
 
     services:
-      mongodb:
-        image: mongo:7
+      mariadb:
+        image: mariadb:10.11
         env:
-          MONGO_INITDB_ROOT_USERNAME: devops_user
-          MONGO_INITDB_ROOT_PASSWORD: devops_password
-          MONGO_INITDB_DATABASE: orders_db
-        # Vérifie que MongoDB est prêt toutes les 10 secondes (timeout 5s, max 3 tentatives)
+          MARIADB_ROOT_PASSWORD: root_password
+          MARIADB_DATABASE: ecommerce_db
+          MARIADB_USER: devops_user
+          MARIADB_PASSWORD: devops_password
+        # Vérifie que MariaDB est prêt toutes les 10 secondes (timeout 5s, max 3 tentatives)
         options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot_password || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
         ports:
-          - 27017:27017
+          - 3306:3306
 
     steps:
       - name: Checkout code
@@ -60,16 +61,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Wait for MongoDB
+      - name: Wait for MariaDB
         run: |
-          timeout 60 sh -c 'until mongosh --host localhost --username devops_user --password devops_password --authenticationDatabase admin --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do
-            echo "⏳ Waiting for MongoDB instance..."
+          timeout 60 sh -c 'until mysqladmin ping -h 127.0.0.1 -u root -proot_password; do
+            echo "⏳ Waiting for MariaDB instance..."
             sleep 2
           done'
 
+      - name: Setup test database
+        run: |
+          mysql -h 127.0.0.1 -u devops_user -pdevops_password ecommerce_db < ./testapi/data-test-api.sql
+
       - name: Run API tests
         env:
-          MONGO_URI: mongodb://devops_user:devops_password@localhost:27017/orders_db?authSource=admin
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_NAME: ecommerce_db
+          DB_USER: devops_user
+          DB_PASSWORD: devops_password
           JWT_SECRET: test_secret_key
           SERVICE_PORT: 3003
         run: |
