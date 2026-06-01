@@ -1,4 +1,4 @@
-# 🛒 Order Service — Microservice Commandes
+# 🛒 Order Service - Microservice Commandes
 
 ![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
@@ -7,9 +7,9 @@
 ![Trivy](https://img.shields.io/badge/Trivy-security_scan-1904DA?logo=aqua&logoColor=white)
 ![GHCR](https://img.shields.io/badge/GHCR-registry-24292e?logo=github&logoColor=white)
 
-Microservice de gestion des commandes avec authentification JWT — partie de l'architecture microservices e-commerce déployée sur **Kubernetes** (Helm) ou **Docker Swarm** (Kong Gateway).
+Microservice de gestion des commandes avec authentification JWT - partie de l'architecture microservices e-commerce déployée sur **Kubernetes** (Helm) ou **Docker Swarm** (Kong Gateway).
 
-> 💡 **Objectif Portfolio** : Ce service illustre la gestion d'une ressource métier sensible (commandes financières) avec GitHub Actions CI/CD complet — tests → build Docker → scan Trivy → push GHCR.
+> 💡 **Objectif Portfolio** : Ce service illustre la gestion d'une ressource métier sensible (commandes financières) avec GitHub Actions CI/CD complet - tests → build Docker → scan Trivy → push GHCR.
 
 ---
 
@@ -33,7 +33,7 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
                ecommerce_db
 ```
 
-**Rôle de ce service :** Gestion complète du cycle de vie des commandes. Tous les endpoints nécessitent un JWT valide — les utilisateurs ne voient que leurs propres commandes, les admins voient tout.
+**Rôle de ce service :** Gestion complète du cycle de vie des commandes. Tous les endpoints nécessitent un JWT valide - les utilisateurs ne voient que leurs propres commandes, les admins voient tout.
 
 ---
 
@@ -46,8 +46,8 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 | `GET` | `/api/orders/:id` | JWT/Admin | Détails d'une commande |
 | `PUT` | `/api/orders/:id/status` | Admin | Changer statut (pending→shipped…) |
 | `GET` | `/api/orders/all` | Admin | Toutes les commandes |
-| `GET` | `/api/orders/health` | — | Liveness probe |
-| `GET` | `/api/orders/metrics` | — | Métriques Prometheus |
+| `GET` | `/api/orders/health` | - | Liveness probe |
+| `GET` | `/api/orders/metrics` | - | Métriques Prometheus |
 
 **Statuts commande :** `pending` → `processing` → `shipped` → `delivered` / `cancelled`
 
@@ -90,7 +90,7 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 </details>
 
 **Fichier CI/CD :**
-- `.github/workflows/ci.yml` — Pipeline GitHub Actions complète avec tests, scans de sécurité et déploiement
+- `.github/workflows/ci.yml` - Pipeline GitHub Actions complète avec tests, scans de sécurité et déploiement
 
 ---
 
@@ -117,8 +117,8 @@ npm install && npm start
 | `DB_PORT` | Port MariaDB | `3306` | ✅ |
 | `DB_NAME` | Base de données | `ecommerce_db` | ✅ |
 | `DB_USER` | Utilisateur BD | `devops_user` | ✅ |
-| `DB_PASSWORD` | Mot de passe BD | — | ✅ |
-| `JWT_SECRET` | Clé JWT (même que auth-service) | — | ✅ |
+| `DB_PASSWORD` | Mot de passe BD | - | ✅ |
+| `JWT_SECRET` | Clé JWT (même que auth-service) | - | ✅ |
 
 ---
 
@@ -213,6 +213,6 @@ cd testapi && bash test-api.sh
 
 ## 👨‍💻 Auteur
 
-**Yara Mahi Mohamed** — Portfolio DevOps & SRE
+**Yara Mahi Mohamed** - Portfolio DevOps & SRE
 
 *⭐ N'oubliez pas de star ce repo si vous le trouvez utile !*
