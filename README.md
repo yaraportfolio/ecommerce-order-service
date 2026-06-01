@@ -83,9 +83,9 @@ Microservice de gestion des commandes avec authentification JWT — partie de l'
 ```
 
 <details>
-  <summary><strong>🦊⚙️ Afficher l'Architecture du Pipeline CI/CD (Gitlab)</strong></summary>
+  <summary><strong>🦊⚙️ Afficher l'Architecture du Pipeline CI/CD (GitHub)</strong></summary>
 
-![Pipeline CI/CD](https://gitlab.com/yara_portfolio/devops/ecommerce/ecommerce-frontend/-/raw/main/.img/Pipeline-CICD-GitLab.png)
+![Pipeline CI/CD](https://raw.githubusercontent.com/yaraportfolio/ecommerce-frontend/main/.img/Pipeline-CICD-GitLab.png)
 
 </details>
 
