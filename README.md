@@ -13,7 +13,7 @@ Microservice de gestion des commandes avec authentification JWT - partie de l'ar
 
 ---
 
-## ☁️ Déploiement Cloud AWS — *production actuelle*
+## ☁️ Déploiement Cloud AWS - *production actuelle*
 
 Ce microservice tourne sur **AWS EKS (Auto Mode) + Helm**, image publiée sur **GHCR** (public), base **RDS MySQL**, exposé via un **ALB interne** géré par l'AWS Load Balancer Controller. Le frontend est servi en 3 variantes (EC2 / Beanstalk / ECS Fargate) derrière un ALB public.
 
@@ -25,7 +25,7 @@ Ce microservice tourne sur **AWS EKS (Auto Mode) + Helm**, image publiée sur **
 
 ---
 
-## 🗺️ Positionnement dans l'Architecture — *on-premise*
+## 🗺️ Positionnement dans l'Architecture - *on-premise*
 
 ```
                  Frontend (192.168.56.114)
