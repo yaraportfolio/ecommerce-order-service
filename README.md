@@ -7,13 +7,25 @@
 ![Trivy](https://img.shields.io/badge/Trivy-security_scan-1904DA?logo=aqua&logoColor=white)
 ![GHCR](https://img.shields.io/badge/GHCR-registry-24292e?logo=github&logoColor=white)
 
-Microservice de gestion des commandes avec authentification JWT - partie de l'architecture microservices e-commerce déployée sur **Kubernetes** (Helm) ou **Docker Swarm** (Kong Gateway).
+Microservice de gestion des commandes avec authentification JWT - partie de l'architecture microservices e-commerce, déployée sur **AWS (EKS Auto Mode + Helm)** ou en **self-hosted** (Kubernetes / Docker Swarm).
 
 > 💡 **Objectif Portfolio** : Ce service illustre la gestion d'une ressource métier sensible (commandes financières) avec GitHub Actions CI/CD complet - tests → build Docker → scan Trivy → push GHCR.
 
 ---
 
-## 🗺️ Positionnement dans l'Architecture
+## ☁️ Déploiement Cloud AWS — *production actuelle*
+
+Ce microservice tourne sur **AWS EKS (Auto Mode) + Helm**, image publiée sur **GHCR** (public), base **RDS MySQL**, exposé via un **ALB interne** géré par l'AWS Load Balancer Controller. Le frontend est servi en 3 variantes (EC2 / Beanstalk / ECS Fargate) derrière un ALB public.
+
+👉 **Infra AWS complète, guides pas-à-pas et Terraform :** [➜ ecommerce-terraform-aws](https://github.com/yaraportfolio/ecommerce-terraform-aws)
+
+![Architecture AWS](https://raw.githubusercontent.com/yaraportfolio/ecommerce-terraform-aws/main/img/architecture.png)
+
+> ℹ️ Le schéma ci-dessous illustre le **positionnement on-premise / self-hosted** (cluster local `192.168.56.x`). Le déploiement AWS suit la même topologie logique avec des composants managés (EKS, RDS, ALB).
+
+---
+
+## 🗺️ Positionnement dans l'Architecture — *on-premise*
 
 ```
                  Frontend (192.168.56.114)
