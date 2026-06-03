@@ -94,12 +94,6 @@ Ce microservice tourne sur **AWS EKS (Auto Mode) + Helm**, image publiée sur **
     └───────────────────────────────────────┘
 ```
 
-<details>
-  <summary><strong>🦊⚙️ Afficher l'Architecture du Pipeline CI/CD (GitHub)</strong></summary>
-
-![Pipeline CI/CD](https://raw.githubusercontent.com/yaraportfolio/ecommerce-frontend/main/.img/Pipeline-CICD-GitLab.png)
-
-</details>
 
 **Fichier CI/CD :**
 - `.github/workflows/ci.yml` - Pipeline GitHub Actions complète avec tests, scans de sécurité et déploiement
