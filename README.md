@@ -163,11 +163,26 @@ docker run -d \
 
 ### Kubernetes (via Helm Chart)
 
+**Images publiques sur GHCR (par défaut) :**
 ```bash
 helm upgrade ecommerce-microservices . \
   --reuse-values \
   --set services.orderService.image.tag=v3.2
 ```
+
+Image: `ghcr.io/yaraportfolio/order-service:v3.2`
+
+---
+
+**Alternative : Images privées sur ECR (AWS) :**
+```bash
+helm upgrade ecommerce-microservices . \
+  --reuse-values \
+  --set image.registryType=ecr \
+  --set services.orderService.image.tag=v3.2
+```
+
+> 💡 Par défaut, ce service utilise GHCR (GitHub Container Registry) - **images publiques, pas d'authentification requise**.
 
 ---
 
